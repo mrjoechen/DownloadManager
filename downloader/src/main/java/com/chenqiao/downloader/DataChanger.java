@@ -1,4 +1,6 @@
 package com.chenqiao.downloader;
 
-public class DataChanger {
+import java.util.Observable;
+
+public class DataChanger extends Observable {
 }
