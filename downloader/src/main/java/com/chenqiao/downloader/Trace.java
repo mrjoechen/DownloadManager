@@ -2,7 +2,7 @@ package com.chenqiao.downloader;
 
 import android.util.Log;
 
-public class Teace {
+public class Trace {
 
     public static final String TAG = "DownloadManager-Trace";
     private static final boolean Debug = BuildConfig.DEBUG;

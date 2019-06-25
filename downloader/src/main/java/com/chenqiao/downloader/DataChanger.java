@@ -18,6 +18,7 @@ public class DataChanger extends Observable {
     }
 
     public void postStatus(DownloadEntry entry){
+
         setChanged();
         notifyObservers(entry);
     }
