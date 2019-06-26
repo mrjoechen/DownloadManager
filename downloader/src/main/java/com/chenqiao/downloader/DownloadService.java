@@ -6,8 +6,10 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -15,11 +17,18 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class DownloadService extends Service {
 
 
+    public static final int NOTIFY_DOWNLOADING = 1;
+    public static final int NOTIFY_UPDATING = 2;
+    public static final int NOTIFY_PAUSED_OR_CANCELLED = 3;
+    public static final int NOTIFY_COMPLETED = 4;
+
+
     private HashMap<String, DownloadTask> mDownloadTasks = new HashMap<>();
     private ExecutorService mExecutor;
-    private LinkedBlockingQueue<DownloadEntry> nQueue = new LinkedBlockingQueue<>();
+    private LinkedBlockingQueue<DownloadEntry> mWaitingQueue = new LinkedBlockingQueue<>();
+    private ArrayList<DownloadEntry> mPausedEntries = new ArrayList<>();
 
-    private static Handler mHandler = new Handler(){
+    private Handler mHandler = new Handler(){
 
         @Override
         public void handleMessage(Message msg) {
@@ -30,13 +39,12 @@ public class DownloadService extends Service {
 
             if (downloadEntry != null){
                 switch (downloadEntry.status){
-                    case idle:
-                        break;
                     case cancelled:
-                        break;
                     case completed:
-                        break;
                     case paused:
+                        checkNext();
+                        break;
+                    case idle:
                         break;
                     default:
                         break;
@@ -46,6 +54,14 @@ public class DownloadService extends Service {
 
         }
     };
+
+    private void checkNext() {
+        DownloadEntry poll = mWaitingQueue.poll();
+        if (poll != null){
+            startDownload(poll);
+        }
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -54,7 +70,9 @@ public class DownloadService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        //
         mExecutor = Executors.newCachedThreadPool();
+//        Executors.newFixedThreadPool(3);
     }
 
     @Override
@@ -79,7 +97,7 @@ public class DownloadService extends Service {
 
         switch (action) {
             case Constants.KEY_DOWNLOAD_ACTION_ADD:
-                startDownload(downloadEntry);
+                addDownload(downloadEntry);
                 break;
             case Constants.KEY_DOWNLOAD_ACTION_PAUSE:
                 pauseDownload(downloadEntry);
@@ -96,21 +114,42 @@ public class DownloadService extends Service {
 
     }
 
+
+    private void addDownload(DownloadEntry entry){
+        if (mDownloadTasks.size() >= Constants.MAX_DOWNLOAD_SIZE){
+            mWaitingQueue.offer(entry);
+            entry.status = DownloadEntry.DownloadSatus.waiting;
+            DataChanger.getInstance().postStatus(entry);
+        }else {
+            startDownload(entry);
+        }
+    }
+
+
     private void cancelDownload(DownloadEntry downloadEntry) {
         DownloadTask downloadTask = mDownloadTasks.remove(downloadEntry.id);
         if (downloadTask != null){
             downloadTask.cancel();
+        }else {
+            mWaitingQueue.remove(downloadEntry);
+            downloadEntry.status = DownloadEntry.DownloadSatus.cancelled;
+            DataChanger.getInstance().postStatus(downloadEntry);
+
         }
     }
 
     private void resumeDownload(DownloadEntry downloadEntry) {
-        startDownload(downloadEntry);
+        addDownload(downloadEntry);
     }
 
     private void pauseDownload(DownloadEntry downloadEntry) {
         DownloadTask downloadTask = mDownloadTasks.remove(downloadEntry.id);
         if (downloadTask != null){
             downloadTask.pause();
+        }else {
+            mWaitingQueue.remove(downloadEntry);
+            downloadEntry.status = DownloadEntry.DownloadSatus.paused;
+            DataChanger.getInstance().postStatus(downloadEntry);
         }
 
     }
@@ -121,6 +160,22 @@ public class DownloadService extends Service {
 //        downloadTask.start();
         mDownloadTasks.put(downloadEntry.id, downloadTask);
         mExecutor.execute(downloadTask);
+    }
+
+    private void pauseAll(){
+        while (mWaitingQueue.iterator().hasNext()){
+            DownloadEntry entry = mWaitingQueue.poll();
+            entry.status = DownloadEntry.DownloadSatus.paused;
+            DataChanger.getInstance().postStatus(entry);
+        }
+
+        for (Map.Entry<String, DownloadTask> entry : mDownloadTasks.entrySet()){
+            entry.getValue().pause();
+        }
+        mDownloadTasks.clear();
+    }
+
+    private void recoverAll(){
 
     }
 }
