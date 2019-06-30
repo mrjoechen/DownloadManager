@@ -9,6 +9,9 @@ public class DownloadManager {
     private static DownloadManager mInstance;
     private final Context context;
 
+    private static final int MIN_OPERATE_INTERVAL = 1000 * 1;
+    private long mLastOperatedTime = 0;
+
     private DownloadManager(Context context){
         this.context = context;
     }
@@ -22,13 +25,29 @@ public class DownloadManager {
     }
 
     public void add(DownloadEntry downloadEntry){
+        if (!checkIfExecutable()){
+            return;
+        }
         Intent intent = new Intent(context, DownloadService.class);
         intent.putExtra(Constants.KEY_DOWNLOAD_ENTRY, downloadEntry);
         intent.putExtra(Constants.KEY_DOWNLOAD_ACTION, Constants.KEY_DOWNLOAD_ACTION_ADD);
         context.startService(intent);
     }
 
+    private boolean checkIfExecutable() {
+        long tmp = System.currentTimeMillis();
+        if (tmp - mLastOperatedTime > MIN_OPERATE_INTERVAL){
+            mLastOperatedTime = tmp;
+            return true;
+        }
+
+        return false;
+    }
+
     public void pause(DownloadEntry downloadEntry){
+        if (!checkIfExecutable()){
+            return;
+        }
         Intent intent = new Intent(context, DownloadService.class);
         intent.putExtra(Constants.KEY_DOWNLOAD_ENTRY, downloadEntry);
         intent.putExtra(Constants.KEY_DOWNLOAD_ACTION, Constants.KEY_DOWNLOAD_ACTION_PAUSE);
@@ -36,6 +55,9 @@ public class DownloadManager {
     }
 
     public void resume(DownloadEntry downloadEntry){
+        if (!checkIfExecutable()){
+            return;
+        }
         Intent intent = new Intent(context, DownloadService.class);
         intent.putExtra(Constants.KEY_DOWNLOAD_ENTRY, downloadEntry);
         intent.putExtra(Constants.KEY_DOWNLOAD_ACTION, Constants.KEY_DOWNLOAD_ACTION_RESUME);
@@ -43,6 +65,9 @@ public class DownloadManager {
     }
 
     public void cancel(DownloadEntry downloadEntry){
+        if (!checkIfExecutable()){
+            return;
+        }
         Intent intent = new Intent(context, DownloadService.class);
         intent.putExtra(Constants.KEY_DOWNLOAD_ENTRY, downloadEntry);
         intent.putExtra(Constants.KEY_DOWNLOAD_ACTION, Constants.KEY_DOWNLOAD_ACTION_CANCEL);

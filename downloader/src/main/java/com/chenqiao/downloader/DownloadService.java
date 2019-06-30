@@ -177,5 +177,11 @@ public class DownloadService extends Service {
 
     private void recoverAll(){
 
+        ArrayList<DownloadEntry> downloadEntries = DataChanger.getInstance().queryAllRecoverableEntries();
+        if (downloadEntries != null){
+            for (DownloadEntry entry : downloadEntries){
+                addDownload(entry);
+            }
+        }
     }
 }
