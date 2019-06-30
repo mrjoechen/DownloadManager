@@ -74,6 +74,26 @@ public class DownloadManager {
         context.startService(intent);
     }
 
+    public void pauseAll(){
+        if (!checkIfExecutable()){
+            return;
+        }
+
+        Intent intent = new Intent(context, DownloadService.class);
+        intent.putExtra(Constants.KEY_DOWNLOAD_ACTION, Constants.KEY_DOWNLOAD_ACTION_PAUSEALL);
+        context.startService(intent);
+    }
+
+    public void recoverAll(){
+        if (!checkIfExecutable()){
+            return;
+        }
+
+        Intent intent = new Intent(context, DownloadService.class);
+        intent.putExtra(Constants.KEY_DOWNLOAD_ACTION, Constants.KEY_DOWNLOAD_ACTION_RECOVERALL);
+        context.startService(intent);
+    }
+
     public void addObserver(DataWatcher dataWatcher){
         DataChanger.getInstance().addObserver(dataWatcher);
     }
