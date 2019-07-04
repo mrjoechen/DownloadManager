@@ -35,6 +35,7 @@ public class DownloadTask implements Runnable{
 
         Message message = mHandler.obtainMessage();
         message.obj = downloadEntry;
+        message.what = DownloadService.NOTIFY_DOWNLOADING;
         mHandler.sendMessage(message);
         downloadEntry.totalLength = 1024 * 100;
 
@@ -50,6 +51,7 @@ public class DownloadTask implements Runnable{
 //                DataChanger.getInstance().postStatus(downloadEntry);
                 message = mHandler.obtainMessage();
                 message.obj = downloadEntry;
+                message.what = DownloadService.NOTIFY_PAUSED_OR_CANCELLED;
                 mHandler.sendMessage(message);
                 // todo if cancelled ,delete th temp file
                 return;
@@ -60,12 +62,14 @@ public class DownloadTask implements Runnable{
 //            DataChanger.getInstance().postStatus(downloadEntry);
             message = mHandler.obtainMessage();
             message.obj = downloadEntry;
+            message.what = DownloadService.NOTIFY_UPDATING;
             mHandler.sendMessage(message);
         }
         downloadEntry.status = DownloadEntry.DownloadSatus.completed;
 //        DataChanger.getInstance().postStatus(downloadEntry);
         message = mHandler.obtainMessage();
         message.obj = downloadEntry;
+        message.what = DownloadService.NOTIFY_COMPLETED;
         mHandler.sendMessage(message);
 
     }
